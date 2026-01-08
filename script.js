@@ -60,10 +60,10 @@ closeServicesBtn.onclick = function() {
 
 // Галерея сертификатов
 const certificates = [
-    '/sertif/Alexandr certificat.jpg',
-    '/sertif/Certificat Alexandr.jpg',
-    '/sertif/Certificat Alexandre.jpg',
-    '/sertif/Certificat professionall.jpg'
+    './sertif/Alexandr certificat.jpg',
+    './sertif/Certificat Alexandr.jpg',
+    './sertif/Certificat Alexandre.jpg',
+    './sertif/Certificat professionall.jpg'
 ];
 
 let currentCertificate = 0;
