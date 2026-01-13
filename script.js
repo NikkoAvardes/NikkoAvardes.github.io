@@ -105,240 +105,18 @@ nextBtn.onclick = function() {
         currentCertificate++;
         updateCertificate();
     }
-}
+};
 
-// Система отзывов с авторизацией через Яндекс
-const reviewModal = document.getElementById('reviewModal');
-const addReviewBtn = document.getElementById('addReviewBtn');
-const closeReviewBtn = document.getElementById('closeReview');
-const authSection = document.getElementById('authSection');
-const reviewFormSection = document.getElementById('reviewFormSection');
-const successMessage = document.getElementById('successMessage');
-const yandexAuthBtn = document.getElementById('yandexAuthBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const reviewForm = document.getElementById('reviewForm');
-const starRating = document.getElementById('starRating');
-const ratingInput = document.getElementById('rating');
-
-// Данные пользователя (сохраняются в localStorage)
-let currentUser = JSON.parse(localStorage.getItem('yandexUser')) || null;
-
-// Яндекс OAuth настройки (ЗАМЕНИТЕ на ваши реальные данные)
-const YANDEX_CLIENT_ID = 'YOUR_YANDEX_CLIENT_ID'; // Получите на https://oauth.yandex.ru/
-const REDIRECT_URI = window.location.origin + window.location.pathname;
-
-// Открытие модального окна для отзыва
-addReviewBtn.onclick = function(e) {
-    e.preventDefault();
-    reviewModal.classList.add('show');
-    
-    if (currentUser) {
-        showReviewForm();
-    } else {
-        showAuthSection();
-    }
-}
-
-closeReviewBtn.onclick = function() {
-    reviewModal.classList.remove('show');
-    resetModal();
-}
-
-// Авторизация через Яндекс
-yandexAuthBtn.onclick = function() {
-    // Для демонстрации - имитация авторизации
-    // В реальности нужно использовать Яндекс OAuth API
-    
-    // Проверяем, если это демо-режим (без настроенного CLIENT_ID)
-    if (YANDEX_CLIENT_ID === 'YOUR_YANDEX_CLIENT_ID') {
-        // Демо-режим: просто запрашиваем имя
-        const userName = prompt('Введите ваше имя для демонстрации:');
-        if (userName && userName.trim()) {
-            currentUser = {
-                name: userName.trim(),
-                id: 'demo_' + Date.now()
-            };
-            localStorage.setItem('yandexUser', JSON.stringify(currentUser));
-            showReviewForm();
-        }
-    } else {
-        // Реальная авторизация через Яндекс OAuth
-        const authUrl = `https://oauth.yandex.ru/authorize?response_type=token&client_id=${YANDEX_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-        window.location.href = authUrl;
-    }
-}
-
-// Проверка токена при загрузке страницы (для реального OAuth)
-window.addEventListener('load', function() {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-    
-    if (accessToken) {
-        // Получаем информацию о пользователе от Яндекса
-        fetch('https://login.yandex.ru/info', {
-            headers: {
-                'Authorization': `OAuth ${accessToken}`
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            currentUser = {
-                name: data.real_name || data.display_name || 'Пользователь',
-                id: data.id
-            };
-            localStorage.setItem('yandexUser', JSON.stringify(currentUser));
-            window.location.hash = '';
-        })
-        .catch(error => {
-            console.error('Ошибка получения данных пользователя:', error);
-        });
-    }
-});
-
-// Выход из аккаунта
-logoutBtn.onclick = function() {
-    currentUser = null;
-    localStorage.removeItem('yandexUser');
-    showAuthSection();
-}
-
-// Показать форму отзыва
-function showReviewForm() {
-    authSection.style.display = 'none';
-    reviewFormSection.style.display = 'block';
-    successMessage.style.display = 'none';
-    
-    document.getElementById('userName').textContent = currentUser.name;
-    document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
-}
-
-// Показать секцию авторизации
-function showAuthSection() {
-    authSection.style.display = 'block';
-    reviewFormSection.style.display = 'none';
-    successMessage.style.display = 'none';
-}
-
-// Сброс модального окна
-function resetModal() {
-    reviewForm.reset();
-    ratingInput.value = '5';
-    updateStars(5);
-    successMessage.style.display = 'none';
-}
-
-// Рейтинг звёздами
-let selectedRating = 5;
-starRating.querySelectorAll('.star').forEach(star => {
-    star.addEventListener('click', function() {
-        selectedRating = parseInt(this.dataset.rating);
-        ratingInput.value = selectedRating;
-        updateStars(selectedRating);
-    });
-    
-    star.addEventListener('mouseenter', function() {
-        const hoverRating = parseInt(this.dataset.rating);
-        updateStars(hoverRating);
-    });
-});
-
-starRating.addEventListener('mouseleave', function() {
-    updateStars(selectedRating);
-});
-
-function updateStars(rating) {
-    starRating.querySelectorAll('.star').forEach((star, index) => {
-        star.textContent = index < rating ? '★' : '☆';
-    });
-}
-
-// Отправка формы отзыва
-reviewForm.onsubmit = function(e) {
-    e.preventDefault();
-    
-    const reviewText = document.getElementById('reviewText').value.trim();
-    const rating = ratingInput.value;
-    
-    if (!reviewText) {
-        alert('Пожалуйста, напишите отзыв');
+// Lightbox для галереи отзывов
+(function initReviewLightbox() {
+    // Ждем полной загрузки страницы
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initReviewLightbox);
         return;
     }
     
-    // Создаём новый отзыв
-    const newReview = {
-        name: currentUser.name,
-        rating: parseInt(rating),
-        text: reviewText,
-        date: new Date().toISOString()
-    };
+    console.log('Инициализация lightbox для отзывов');
     
-    // Сохраняем отзыв в localStorage
-    let reviews = JSON.parse(localStorage.getItem('userReviews')) || [];
-    reviews.unshift(newReview);
-    localStorage.setItem('userReviews', JSON.stringify(reviews));
-    
-    // Добавляем отзыв на страницу
-    addReviewToPage(newReview);
-    
-    // Показываем сообщение об успехе
-    reviewFormSection.style.display = 'none';
-    successMessage.style.display = 'block';
-    
-    // Закрываем модальное окно через 2 секунды
-    setTimeout(() => {
-        reviewModal.classList.remove('show');
-        resetModal();
-        if (currentUser) {
-            showReviewForm();
-        }
-    }, 2000);
-}
-
-// Добавление отзыва на страницу
-function addReviewToPage(review) {
-    const reviewsSection = document.querySelector('.reviews-section');
-    const addButton = document.getElementById('addReviewBtn');
-    
-    const reviewCard = document.createElement('div');
-    reviewCard.className = 'review-card new-review';
-    reviewCard.style.opacity = '0';
-    reviewCard.style.animation = 'fadeInUp 0.5s ease-out forwards';
-    
-    const stars = '⭐'.repeat(review.rating);
-    
-    reviewCard.innerHTML = `
-        <div class="review-header">
-            <div class="review-avatar">${review.name.charAt(0).toUpperCase()}</div>
-            <div class="review-info">
-                <h3 class="review-name">${review.name}</h3>
-                <div class="review-stars">${stars}</div>
-            </div>
-        </div>
-        <p class="review-text">${review.text}</p>
-    `;
-    
-    // Вставляем перед кнопкой "Оставить отзыв"
-    reviewsSection.insertBefore(reviewCard, addButton);
-}
-
-// Загрузка сохранённых отзывов при загрузке страницы
-window.addEventListener('DOMContentLoaded', function() {
-    const savedReviews = JSON.parse(localStorage.getItem('userReviews')) || [];
-    savedReviews.forEach(review => {
-        addReviewToPage(review);
-    });
-});
-
-// Закрытие модального окна отзыва при клике вне окна
-window.addEventListener('click', function(event) {
-    if (event.target == reviewModal) {
-        reviewModal.classList.remove('show');
-        resetModal();
-    }
-});
-// Lightbox для галереи отзывов
-document.addEventListener('DOMContentLoaded', function() {
     const lightbox = document.getElementById('reviewLightbox');
     const lightboxImage = document.getElementById('lightboxImage');
     const closeBtn = document.querySelector('.lightbox-close');
@@ -346,31 +124,51 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextBtn = document.querySelector('.lightbox-next');
     const reviewItems = document.querySelectorAll('.review-item img');
     
+    console.log('Найдено изображений отзывов:', reviewItems.length);
+    console.log('Lightbox элемент:', lightbox ? 'найден' : 'не найден');
+    
+    if (!lightbox || !lightboxImage || !closeBtn || !prevBtn || !nextBtn) {
+        console.error('Не найдены элементы lightbox');
+        return;
+    }
+    
+    if (reviewItems.length === 0) {
+        console.error('Не найдены изображения отзывов');
+        return;
+    }
+    
     let currentImageIndex = 0;
     const images = Array.from(reviewItems).map(img => img.src);
     
+    console.log('Загружено изображений:', images.length);
+    
     // Открыть lightbox при клике на изображение
     reviewItems.forEach((img, index) => {
-        img.addEventListener('click', function() {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', function(e) {
+            console.log('Клик по изображению', index);
+            e.preventDefault();
+            e.stopPropagation();
             currentImageIndex = index;
             openLightbox(this.src);
         });
     });
     
     function openLightbox(src) {
+        console.log('Открытие lightbox с изображением:', src);
         lightbox.style.display = 'flex';
         lightboxImage.src = src;
-        document.body.style.overflow = 'hidden'; // Отключить прокрутку страницы
+        document.body.style.overflow = 'hidden';
         
-        // Анимация появления
         setTimeout(() => {
             lightbox.classList.add('active');
         }, 10);
     }
     
     function closeLightbox() {
+        console.log('Закрытие lightbox');
         lightbox.classList.remove('active');
-        document.body.style.overflow = ''; // Включить прокрутку страницы
+        document.body.style.overflow = '';
         
         setTimeout(() => {
             lightbox.style.display = 'none';
@@ -378,7 +176,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Закрыть lightbox
-    closeBtn.addEventListener('click', closeLightbox);
+    closeBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeLightbox();
+    });
     
     // Закрыть при клике на фон
     lightbox.addEventListener('click', function(e) {
@@ -389,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Навигация - предыдущее изображение
     prevBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         e.stopPropagation();
         currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
         lightboxImage.src = images[currentImageIndex];
@@ -396,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Навигация - следующее изображение
     nextBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         e.stopPropagation();
         currentImageIndex = (currentImageIndex + 1) % images.length;
         lightboxImage.src = images[currentImageIndex];
@@ -429,12 +233,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function handleSwipe() {
         if (touchEndX < touchStartX - 50) {
-            // Свайп влево - следующее изображение
             nextBtn.click();
         }
         if (touchEndX > touchStartX + 50) {
-            // Свайп вправо - предыдущее изображение
             prevBtn.click();
         }
     }
-});
+})();
